@@ -1,10 +1,10 @@
 import asyncio
-import threading
+from multiprocessing import Process
 
 from search_engine.engine import SearchEngine
 
 
-async def loader(board):
+async def loader(board: str):
     engine = SearchEngine()
 
     threads = await engine.search_for_in_threads(board=board, include=["сап"], exclude=["фап"])
@@ -17,17 +17,17 @@ def task(board):
 
 
 def main():
-    boards = ["b"]
+    boards = ["b", "vg"]
 
     threads = []
 
     for board in boards:
-        _task = threading.Thread(target=task, args=(board,))
-        _task.start()
-        threads.append(_task)
+        process = Process(target=task, args=(board,))
+        process.start()
+        threads.append(process)
 
-    for _task in threads:
-        _task.join()
+    for process in threads:
+        process.join()
 
 
 if __name__ == "__main__":
