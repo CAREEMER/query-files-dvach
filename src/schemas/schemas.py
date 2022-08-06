@@ -1,8 +1,9 @@
-from email.policy import default
 from typing import List, Optional
 import os
+from threading import Thread as _Thread
+import asyncio
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 import aiohttp
 import aiofiles
 from loguru import logger
@@ -69,10 +70,13 @@ class Post(BaseModel):
     trip: str
     views: int
 
-    async def download_files(self, filepath: str):
+    def download_files(self, filepath: str):
         if not self.files:
             return
 
+        asyncio.run(self._download_files(filepath))
+
+    async def _download_files(self, filepath):
         for file in self.files:
             await file.download(filepath)
 
@@ -106,13 +110,19 @@ class Thread(BaseModel):
         if not self.fully_loaded:
             return
 
-        os.makedirs(f"{board}", exist_ok=True)
+        filepath = os.path.join("files", board, str(self.thread_num))
 
-        filepath = os.path.join(board, str(self.thread_num))
         os.makedirs(filepath, exist_ok=True)
 
+        _sys_threads = []
+
         for post in self.posts:
-            await post.download_files(filepath)
+            _sys_thread = _Thread(target=post.download_files, args=(filepath,))
+            _sys_thread.start()
+            _sys_threads.append(_sys_thread)
+
+        for _st in _sys_threads:
+            _st.join()
 
 
 class TopItem(BaseModel):
